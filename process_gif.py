@@ -2,7 +2,6 @@ import os, shutil
 from PIL import Image
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 def emptyAndDeleteFolder(foldername):
     print("Emptying and deleting", foldername, "...")
