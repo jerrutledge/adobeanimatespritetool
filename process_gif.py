@@ -22,25 +22,24 @@ def processGif(input_filename, output_filename, x=0, y=0, w=1000, h=1000, replac
     # capture the animated gif
     frames = []
     with Image.open(input_filename) as imageObject:
-        imageObject.seek(0)
-        imageObject.show()
-        frames.append( np.array(imageObject))
+        for frame_num in range(0, imageObject.n_frames):
+            imageObject.seek(frame_num)
+            frames.append(np.array(imageObject))
 
     #remove duplicate frames
-    prevGrayFrame = []
+    prevCropFrame = []
     uniqueFrames = []
-    for frame in frames:
-
+    for frame in frames[1:]: # only the frames after the first 
         # crop
-        grayFrame = frame[y:y+h, x:x+w]
-        if len(prevGrayFrame):
-            norm = cv2.norm(prevGrayFrame, grayFrame)
+        cropFrame = frame[y:y+h, x:x+w]
+        if len(prevCropFrame):
+            norm = cv2.norm(prevCropFrame, cropFrame)
             print(norm / (w*h))
             if norm > 0.07:
-                uniqueFrames.append(grayFrame)
+                uniqueFrames.append(cropFrame)
         else:
-            uniqueFrames.append(frame)
-        prevGrayFrame = grayFrame
+            uniqueFrames.append(cropFrame)
+        prevCropFrame = cropFrame
 
     print(len(uniqueFrames))
     if os.path.isdir(output_filename):
@@ -65,8 +64,6 @@ def processGif(input_filename, output_filename, x=0, y=0, w=1000, h=1000, replac
     print("Trying to clean up directory", output_filename, "...")
     os.rmdir(output_filename)
     print("Directory", output_filename, "successfully removed")
-
-cv2.destroyAllWindows()
 
 if __name__ == "__main__":
 
