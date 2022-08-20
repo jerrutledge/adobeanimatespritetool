@@ -1,4 +1,3 @@
-from msilib.schema import Error
 import os, shutil
 from PIL import Image
 import cv2
