@@ -23,7 +23,7 @@ def processGif(input_filename, output_filename, x=0, y=0, w=1000, h=1000, replac
     with Image.open(input_filename) as imageObject:
         for frame_num in range(0, imageObject.n_frames):
             imageObject.seek(frame_num)
-            frames.append(np.array(imageObject))
+            frames.append(cv2.cvtColor(np.array(imageObject), cv2.COLOR_BGR2RGBA))
 
     #remove duplicate frames
     prevCropFrame = []
