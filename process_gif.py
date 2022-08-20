@@ -1,6 +1,4 @@
 import os, shutil
-from tabnanny import check
-from turtle import width
 from PIL import Image
 import cv2
 import numpy as np
