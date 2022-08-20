@@ -34,7 +34,7 @@ def processGif(input_filename, output_filename, x=0, y=0, w=1000, h=1000, replac
         if len(prevCropFrame):
             norm = cv2.norm(prevCropFrame, cropFrame)
             print(norm / (w*h))
-            if norm > 0.07:
+            if norm > 0.07 and cropFrame.max() > 0:
                 uniqueFrames.append(cropFrame)
         else:
             uniqueFrames.append(cropFrame)
