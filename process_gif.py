@@ -1,4 +1,3 @@
-from msilib.schema import Error
 import os, shutil
 import cv2
 import numpy as np
