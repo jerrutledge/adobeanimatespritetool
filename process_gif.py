@@ -39,7 +39,7 @@ def autoCrop(frames, g_x=0, g_y=0, g_w=1, g_h=1):
 def checkRowOrColumn(frames, x1, x2, y1, y2):
     try:
         for frame in frames:
-            if frame[x1:x2, y1:y2].max() >= 0:
+            if frame[x1:x2, y1:y2, 3].max() > 0:
                 # we've reached an non-blank pixel
                 return True
     except IndexError:
@@ -56,17 +56,22 @@ def processGif(input_filename, output_filename, g_x=0, g_y=0, g_w=1000, g_h=1000
         for frame_num in range(0, imageObject.n_frames):
             imageObject.seek(frame_num)
             frames.append(cv2.cvtColor(np.array(imageObject), cv2.COLOR_BGR2RGBA))
+    # the first one seems to turn out bad??
+    frames.remove(frames[0])
+    # cv2.imshow('image', frames[0])
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     # determine the correct crop starting from a given crop
     x, y, w, h = g_x, g_y, g_w, g_h
     if auto_crop:
-        x, y, w, h = autoCrop(frames, g_x, g_y, g_w, g_h)
+        x, y, w, h = autoCrop(frames, x, y, w, h)
         print("Autocrop", x,y,w,h)
 
     #remove duplicate frames
     prevCropFrame = []
     uniqueFrames = []
-    for frame in frames[1:]: # only the frames after the first 
+    for frame in frames:
         # crop
         cropFrame = frame[x:x+w, y:y+h]
         if len(prevCropFrame):
@@ -106,6 +111,6 @@ if __name__ == "__main__":
     input_filename = "Character-walk-cycle2.gif"
     output_filename = "Character"
     # crop
-    x, y, w, h = 50, 50, 60, 60
+    x, y, w, h = 180, 180, 60, 60
 
     processGif(input_filename, output_filename, x, y, w, h, replace=True)
