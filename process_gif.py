@@ -26,13 +26,13 @@ class ProcessGIF:
         dirs = [True, True, True, True] # keep expanding in up, down, left & right
         while True in dirs:
             dirs = [True, True, True, True]
-            dirs[0] = checkRowOrColumn(frames, x, x+w, y, y+1) and y > 1
+            dirs[0] = ProcessGIF.checkRowOrColumn(frames, x, x+w, y, y+1) and y > 1
             y -= 1 if dirs[0] else 0
-            dirs[1] = checkRowOrColumn(frames, x, x+w, y+h-1, y+h) and h < image_height - y
+            dirs[1] = ProcessGIF.checkRowOrColumn(frames, x, x+w, y+h-1, y+h) and h < image_height - y
             h += 1 if dirs[1] else 0
-            dirs[2] = checkRowOrColumn(frames, x, x+1, y, y+h) and x > 1
+            dirs[2] = ProcessGIF.checkRowOrColumn(frames, x, x+1, y, y+h) and x > 1
             x -= 1 if dirs[2] else 0
-            dirs[3] = checkRowOrColumn(frames, x+w-1, x+w, y, y+h) and w < image_width - x
+            dirs[3] = ProcessGIF.checkRowOrColumn(frames, x+w-1, x+w, y, y+h) and w < image_width - x
             w += 1 if dirs[3] else 0
 
         return x, y, w, h
@@ -63,7 +63,7 @@ class ProcessGIF:
         # determine the correct crop starting from a given crop
         x, y, w, h = g_x, g_y, g_w, g_h
         if auto_crop:
-            x, y, w, h = autoCrop(frames, x, y, w, h)
+            x, y, w, h = ProcessGIF.autoCrop(frames, x, y, w, h)
             print("Autocrop", x,y,w,h)
 
         #remove duplicate frames
@@ -85,7 +85,7 @@ class ProcessGIF:
         if os.path.isdir(output_filename):
             print("Directory", output_filename, "already exists")
             if replace:
-                emptyAndDeleteFolder(output_filename)
+                ProcessGIF.emptyAndDeleteFolder(output_filename)
             else:
                 return
         
@@ -111,4 +111,4 @@ if __name__ == "__main__":
     # crop
     x, y, w, h = 180, 180, 60, 60
 
-    processGif(input_filename, output_filename, x, y, w, h, replace=True)
+    ProcessGIF.processGif(input_filename, output_filename, x, y, w, h, replace=True)
