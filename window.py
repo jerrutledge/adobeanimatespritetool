@@ -20,6 +20,7 @@ root = Tk()
 content = ttk.Frame(root, padding=(3, 3, 12, 12))
 frame = ttk.Frame(content, borderwidth=3, relief="ridge", width=200, height=100)
 
+# canvas
 h = ttk.Scrollbar(frame, orient=HORIZONTAL)
 v = ttk.Scrollbar(frame, orient=VERTICAL)
 
@@ -33,13 +34,14 @@ v.grid(column=1, row=0, sticky=(N,S))
 frame.grid_columnconfigure(0, weight=1)
 frame.grid_rowconfigure(0, weight=1)
 
-
+# selectors
 namelbl = ttk.Label(content, text="Name")
 name = ttk.Entry(content)
 
 ok = ttk.Button(content, text="Okay")
 cancel = ttk.Button(content, text="Cancel")
 
+# grid layout definitions
 content.grid(column=0, row=0, sticky=(N, S, E, W))
 frame.grid(column=0, row=0, columnspan=3, rowspan=2, sticky=(N, S, E, W))
 namelbl.grid(column=3, row=0, columnspan=2, sticky=(N, W), padx=5)
@@ -47,6 +49,7 @@ name.grid(column=3, row=1, columnspan=2, sticky=(N, E, W), pady=5, padx=5)
 ok.grid(column=3, row=2)
 cancel.grid(column=4, row=2)
 
+# resizing options
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
 content.columnconfigure(0, weight=3)
