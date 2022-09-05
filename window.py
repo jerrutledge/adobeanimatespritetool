@@ -1,21 +1,7 @@
 from lib2to3.pgen2.token import NAME
 from tkinter import *
 from tkinter import ttk
-
-
-class Sketchpad(Canvas):
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent, **kwargs)
-        self.bind("<Button-1>", self.save_posn)
-        self.bind("<B1-Motion>", self.add_line)
-
-    def save_posn(self, event):
-        self.lastx, self.lasty = event.x, event.y
-
-    def add_line(self, event):
-        self.create_line((self.lastx, self.lasty, event.x, event.y))
-        self.save_posn(event)
-
+from SketchPad import SketchPad
 
 root = Tk()
 content = ttk.Frame(root, padding=(3, 3, 12, 12))
@@ -25,7 +11,7 @@ frame = ttk.Frame(content, borderwidth=3, relief="ridge", width=200, height=100)
 h = ttk.Scrollbar(frame, orient=HORIZONTAL)
 v = ttk.Scrollbar(frame, orient=VERTICAL)
 
-canvas = Sketchpad(frame, scrollregion=(
+canvas = SketchPad(frame, scrollregion=(
     0, 0, 1000, 1000), yscrollcommand=v.set, xscrollcommand=h.set)
 h['command'] = canvas.xview
 v['command'] = canvas.yview
@@ -36,17 +22,17 @@ frame.grid_columnconfigure(0, weight=1)
 frame.grid_rowconfigure(0, weight=1)
 
 # Settings
-namelbl = ttk.Label(content, text="Name")
-name = ttk.Entry(content)
+fileName = ttk.Button(content, text="Select File")
+fileNameLabel = ttk.Label(content, text="No file selected...")
 
-okButton = ttk.Button(content, text="Okay")
+okButton = ttk.Button(content, text="Save Files")
 clearButton = ttk.Button(content, text="Clear")
 
 # grid layout definitions
 content.grid(column=0, row=0, sticky=(N, S, E, W))
 frame.grid(column=0, row=0, columnspan=3, rowspan=2, sticky=(N, S, E, W))
-namelbl.grid(column=3, row=0, columnspan=2, sticky=(N, W), padx=5)
-name.grid(column=3, row=1, columnspan=2, sticky=(N, E, W), pady=5, padx=5)
+fileName.grid(column=3, row=0, columnspan=2, sticky=(N, E, W), pady=5, padx=5)
+fileNameLabel.grid(column=3, row=1, columnspan=2, sticky=(N, W), padx=5)
 okButton.grid(column=3, row=2)
 clearButton.grid(column=4, row=2)
 
