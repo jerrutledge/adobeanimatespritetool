@@ -10,6 +10,7 @@ class Window():
     def __init__(self):
         # Variables
         self.fileName = ""
+        self.myImage = None
         # Window
         self.root = Tk()
         self.content = ttk.Frame(self.root, padding=(3, 3, 12, 12))
@@ -64,9 +65,12 @@ class Window():
 
     # Button Handlers
     def fileNameHandler(self):
-        self.fileName = filedialog.askopenfilename(title="Select A File")
-        if len(self.fileName):
+        newFileName = filedialog.askopenfilename(title="Select A File")
+        if len(newFileName):
+            self.fileName = newFileName
             self.fileNameLabel.config(text="Selected GIF: \n"+self.fileName)
+            self.myImage = PhotoImage(file=self.fileName)
+            self.canvas.create_image(0, 0, image=self.myImage, anchor='nw')
 
     def okButtonHandler(self):
         pass
@@ -74,6 +78,8 @@ class Window():
     def clearButtonHandler(self):
         self.fileName = ""
         self.fileNameLabel.config(text="No file selected...")
+        self.myImage = None
+        self.canvas.delete('all')
 
     def runloop(self):
         self.root.mainloop()
