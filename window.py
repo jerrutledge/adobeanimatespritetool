@@ -36,6 +36,7 @@ class Window():
             self.content, text="Select File", command=lambda: Window.fileNameHandler(self))
         self.fileNameLabel = ttk.Label(
             self.content, text="No file selected...")
+        self.statusLabel = ttk.Label(self.content, text="Ready.")
 
         self.okButton = ttk.Button(
             self.content, text="Save Files", command=lambda: Window.okButtonHandler(self))
@@ -45,13 +46,15 @@ class Window():
         # grid layout definitions
         self.content.grid(column=0, row=0, sticky=(N, S, E, W))
         frame.grid(column=0, row=0, columnspan=3,
-                   rowspan=2, sticky=(N, S, E, W))
+                   rowspan=4, sticky=(N, S, E, W))
         self.fileName.grid(column=3, row=0, columnspan=2,
                            sticky=(N, E, W), pady=5, padx=5)
         self.fileNameLabel.grid(
             column=3, row=1, columnspan=2, sticky=(N, W), padx=5)
-        self.okButton.grid(column=3, row=2)
-        self.clearButton.grid(column=4, row=2)
+        self.statusLabel.grid(
+            column=3, row=2, columnspan=2, sticky=(N, W), padx=5)
+        self.okButton.grid(column=3, row=3)
+        self.clearButton.grid(column=4, row=3)
 
         # resizing options
         self.root.columnconfigure(0, weight=1)
