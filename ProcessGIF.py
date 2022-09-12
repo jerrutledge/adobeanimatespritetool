@@ -23,7 +23,7 @@ class ProcessGIF:
                 raise RuntimeError
         os.rmdir(foldername)
 
-    def autoCrop(self, g_x=0, g_y=0, g_w=1, g_h=1):
+    def autoCrop(self, g_x=0, g_y=0, g_w=1, g_h=1, callback=None):
         # expand from given points every frame until a completely transparent border is reached
         x, y, w, h = g_x, g_y, g_w, g_h
 
@@ -45,6 +45,8 @@ class ProcessGIF:
                 self, x+w-1, x+w, y, y+h) and w < image_width - x
             w += 1 if dirs[3] else 0
 
+        if callback is not None:
+            callback.cropDone(x, y, w, h)
         return x, y, w, h
 
     def checkRowOrColumn(self, x1, x2, y1, y2):
@@ -59,19 +61,28 @@ class ProcessGIF:
         # everything is transparent
         return False
 
-    def loadFrames(self, inputFileName):
+    def loadFrames(self, inputFileName, caller=None):
         # capture the animated gif using PIL
         self.frames = []
-        with Image.open(input_filename) as imageObject:
-            for frame_num in range(0, imageObject.n_frames):
-                imageObject.seek(frame_num)
-                self.frames.append(cv2.cvtColor(
-                    np.array(imageObject), cv2.COLOR_BGR2RGBA))
-        # the first one seems to turn out bad??
-        self.frames.remove(self.frames[0])
+        try:
+            with Image.open(inputFileName) as imageObject:
+                for frame_num in range(0, imageObject.n_frames):
+                    imageObject.seek(frame_num)
+                    self.frames.append(cv2.cvtColor(
+                        np.array(imageObject), cv2.COLOR_BGR2RGBA))
+            # the first one seems to turn out bad??
+            self.frames.remove(self.frames[0])
+        except Exception as e:
+            if caller is not None:
+                caller.imageLoadedHandler(False)
+                raise e
+        if caller is not None:
+            caller.imageLoadedHandler()
+
+    def getFrame(self, framenum=0):
+        return self.frames[framenum]
 
     # remove duplicate frames & blank frames
-
     def ValidFrames(self, x=0, y=0, w=-1, h=-1):
         prevCropFrame = []
         uniqueFrames = []
@@ -134,9 +145,9 @@ class ProcessGIF:
 if __name__ == "__main__":
 
     input_filename = "Character-walk-cycle2.gif"
-    output_filename = "Character"
+    output_filename = "Coin"
     # crop
-    x, y, w, h = 180, 180, 60, 60
+    x, y, w, h = 554, 396, 2, 2
 
     p = ProcessGIF()
     p.loadFrames(inputFileName=input_filename)

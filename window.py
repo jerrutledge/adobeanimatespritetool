@@ -1,9 +1,11 @@
 from cgitb import handler
 from lib2to3.pgen2.token import NAME
+from threading import Thread
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 from SketchPad import SketchPad
+from ProcessGIF import ProcessGIF
 
 
 class Window():
@@ -16,12 +18,14 @@ class Window():
         self.content = ttk.Frame(self.root, padding=(3, 3, 12, 12))
         frame = ttk.Frame(self.content, borderwidth=3,
                           relief="ridge", width=200, height=100)
+        self.gif = None
+        self.loadingThread = None
 
         # canvas
         h = ttk.Scrollbar(frame, orient=HORIZONTAL)
         v = ttk.Scrollbar(frame, orient=VERTICAL)
 
-        self.canvas = SketchPad(frame, scrollregion=(
+        self.canvas = SketchPad(frame, owner=self, scrollregion=(
             0, 0, 1000, 1000), yscrollcommand=v.set, xscrollcommand=h.set)
         h['command'] = self.canvas.xview
         v['command'] = self.canvas.yview
@@ -71,9 +75,12 @@ class Window():
         newFileName = filedialog.askopenfilename(title="Select A File")
         if len(newFileName):
             self.fileName = newFileName
-            self.fileNameLabel.config(text="Selected GIF: \n"+self.fileName)
-            self.myImage = PhotoImage(file=self.fileName)
-            self.canvas.create_image(0, 0, image=self.myImage, anchor='nw')
+            self.fileNameLabel.config(text="Loading GIF... \n"+self.fileName)
+            self.gif = ProcessGIF()
+            self.loadingThread = Thread(
+                target=lambda: ProcessGIF.loadFrames(self.gif, self.fileName, self))
+            self.loadingThread.start()
+            self.fileNameLabel.config(text="Loading GIF... \n"+self.fileName)
 
     def okButtonHandler(self):
         pass
@@ -86,6 +93,31 @@ class Window():
 
     def runloop(self):
         self.root.mainloop()
+    
+    def selectPosition(self, x, y):
+        print("clicked on position", x, y)
+        if self.loadingThread and self.loadingThread.is_alive():
+            print("we're busy")
+            return
+        if self.gif is None:
+            return
+        self.loadingThread = Thread(target=lambda: self.gif.autoCrop(x, y, callback=self))
+        self.loadingThread.start()
+        self.statusLabel.config(text="Working on crop...")
+
+    # work done handlers
+    def imageLoadedHandler(self, success=True):
+        if not success:
+            self.fileNameLabel.config(text="Image Load failed??? Check log?")
+            return
+        self.fileNameLabel.config(text="Selected GIF: \n" + self.fileName)
+        self.myImage = PhotoImage(file=self.fileName)
+        self.canvas.create_image(0, 0, image=self.myImage, anchor='nw')
+    
+    def cropDone(self, x, y, w, h):
+        print("cropdone", x, y, w, h)
+        self.canvas.create_rectangle(x, y, x+w, y+h, outline='blue')
+        self.statusLabel.config(text="Crop done!")
 
 
 if __name__ == "__main__":
