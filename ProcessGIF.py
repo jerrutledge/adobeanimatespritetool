@@ -52,7 +52,8 @@ class ProcessGIF:
     def checkRowOrColumn(self, x1, x2, y1, y2):
         try:
             for frame in self.frames:
-                if frame[x1:x2, y1:y2, 3].max() > 0:
+                # 3 represents the alpha channel
+                if frame[y1:y2, x1:x2, 3].max() > 0:
                     # we've reached an non-blank pixel
                     return True
         except IndexError:
@@ -88,7 +89,7 @@ class ProcessGIF:
         uniqueFrames = []
         for frame in self.frames:
             # crop
-            cropFrame = frame[x:x+w, y:y+h]
+            cropFrame = frame[y:y+h, x:x+w]
             if len(prevCropFrame):
                 norm = cv2.norm(prevCropFrame, cropFrame)
                 # print(norm / (w*h))
