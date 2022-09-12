@@ -27,22 +27,26 @@ class ProcessGIF:
         # expand from given points every frame until a completely transparent border is reached
         x, y, w, h = g_x, g_y, g_w, g_h
 
-        image_width, image_height = self.frames[0].shape[0], self.frames[0].shape[1]
+        image_height, image_width = self.frames[0].shape[0], self.frames[0].shape[1]
         # keep expanding in up, down, left & right
         dirs = [True, True, True, True]
         while True in dirs:
             dirs = [True, True, True, True]
             dirs[0] = ProcessGIF.checkRowOrColumn(self, x, x+w, y, y+1)
             dirs[0] = dirs[0] and y > 1
-            y -= 1 if dirs[0] else 0
+            if dirs[0]:
+                y -= 1
+                h += 1
             dirs[1] = ProcessGIF.checkRowOrColumn(self, x, x+w, y+h-1, y+h)
-            dirs[1] = dirs[1] and h < image_height - y
+            dirs[1] = dirs[1] and h + y < image_height
             h += 1 if dirs[1] else 0
             dirs[2] = ProcessGIF.checkRowOrColumn(self, x, x+1, y, y+h)
             dirs[2] = dirs[2] and x > 1
-            x -= 1 if dirs[2] else 0
+            if dirs[2]:
+                x -= 1
+                w += 1
             dirs[3] = ProcessGIF.checkRowOrColumn(self, x+w-1, x+w, y, y+h)
-            dirs[3] = dirs[3] and w < image_width - x
+            dirs[3] = dirs[3] and w + x < image_width
             w += 1 if dirs[3] else 0
 
         if callback is not None:
@@ -148,7 +152,7 @@ if __name__ == "__main__":
     input_filename = "Character-walk-cycle2.gif"
     output_filename = "Coin"
     # crop
-    x, y, w, h = 554, 396, 2, 2
+    x, y, w, h = 750, 240, 2, 2
 
     p = ProcessGIF()
     p.loadFrames(inputFileName=input_filename)
