@@ -88,13 +88,13 @@ class ProcessGIF:
         return self.frames[framenum]
 
     # remove duplicate frames & blank frames
-    def ValidFrames(self, x=0, y=0, w=-1, h=-1):
+    def ValidFrames(self, x=0, y=0, w=-1, h=-1, removeInvalidFrames=True):
         prevCropFrame = []
         uniqueFrames = []
         for frame in self.frames:
             # crop
             cropFrame = frame[y:y+h, x:x+w]
-            if len(prevCropFrame):
+            if len(prevCropFrame) and removeInvalidFrames:
                 norm = cv2.norm(prevCropFrame, cropFrame)
                 # print(norm / (w*h))
                 if norm > 0.07 and cropFrame.max() > 0:
@@ -106,7 +106,7 @@ class ProcessGIF:
         return uniqueFrames
 
     def saveFrames(self, outputFileName, x, y, w, h, removeInvalidFrames=True):
-        uniqueFrames = self.ValidFrames(x, y, w, h)
+        uniqueFrames = self.ValidFrames(x, y, w, h, removeInvalidFrames)
         try:
             os.mkdir(outputFileName)
         except FileExistsError as e:
@@ -144,7 +144,7 @@ class ProcessGIF:
             else:
                 return
 
-        self.saveFrames(output_filename, x, y, w, h)
+        self.saveFrames(output_filename, x, y, w, h, removeInvalidFrames=True)
 
 
 if __name__ == "__main__":
