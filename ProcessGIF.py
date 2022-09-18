@@ -4,6 +4,10 @@ from PIL import Image
 import cv2
 import numpy as np
 
+# in order to load in first GIF frame as rbg image and not grayscale
+from PIL import GifImagePlugin
+GifImagePlugin.LOADING_STRATEGY = GifImagePlugin.LoadingStrategy.RGB_ALWAYS
+
 
 class ProcessGIF:
     def __init__(self) -> None:
@@ -73,10 +77,8 @@ class ProcessGIF:
             with Image.open(inputFileName) as imageObject:
                 for frame_num in range(0, imageObject.n_frames):
                     imageObject.seek(frame_num)
-                    self.frames.append(cv2.cvtColor(
-                        np.array(imageObject), cv2.COLOR_BGR2RGBA))
-            # the first one seems to turn out bad??
-            self.frames.remove(self.frames[0])
+                    array = np.array(imageObject)
+                    self.frames.append(cv2.cvtColor(array, cv2.COLOR_BGR2RGBA))
         except Exception as e:
             if caller is not None:
                 caller.imageLoadedHandler(False)
@@ -124,8 +126,7 @@ class ProcessGIF:
             raise err
         print("Saved image(s) to directory", outputFileName)
 
-    # this is the comprehensive function, not meant to be called outside of this file
-    # meant for testing
+    # meant for testing the whole pipeline, not meant to be called outside of this file
     def processGif(self, output_filename, g_x=0, g_y=0, g_w=1000, g_h=1000, replace=False, auto_crop=True):
         if not len(self.frames):
             print("No frames to process! Load image first")
