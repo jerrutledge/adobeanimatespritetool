@@ -6,6 +6,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from SketchPad import SketchPad
 from ProcessGIF import ProcessGIF
+from crop import Crop
 
 
 class Window():
@@ -20,6 +21,7 @@ class Window():
                           relief="ridge", width=200, height=100)
         self.gif = None
         self.loadingThread = None
+        self.crops = []
 
         # canvas
         h = ttk.Scrollbar(frame, orient=HORIZONTAL)
@@ -83,17 +85,34 @@ class Window():
             self.fileNameLabel.config(text="Loading GIF... \n"+self.fileName)
 
     def okButtonHandler(self):
-        pass
+        if not self.gif:
+            self.statusLabel.config(text="No image loaded!")
+            return
+        # TODO: filename dialogue
+        filename = filedialog.asksaveasfilename()
+        if not filename:
+            # the user cancalled the file dialog
+            return
+        # save the files
+        removeInvalidFrames = True
+        # TODO: invalid frames checkbox?
+        if len(self.crops):
+            # last element?
+            x, y, w, h = self.crops[len(self.crops) - 1].getCrop()
+            self.gif.saveFrames(filename, x, y, w, h, removeInvalidFrames)
+        else:
+            self.gif.saveFrames(filename, crop=False)
 
     def clearButtonHandler(self):
         self.fileName = ""
         self.fileNameLabel.config(text="No file selected...")
         self.myImage = None
         self.canvas.delete('all')
+        self.crops.clear()
 
     def runloop(self):
         self.root.mainloop()
-    
+
     def selectPosition(self, x, y):
         print("clicked on position", x, y)
         if self.loadingThread and self.loadingThread.is_alive():
@@ -101,7 +120,8 @@ class Window():
             return
         if self.gif is None:
             return
-        self.loadingThread = Thread(target=lambda: self.gif.autoCrop(x, y, callback=self))
+        self.loadingThread = Thread(
+            target=lambda: self.gif.autoCrop(x, y, callback=self))
         self.loadingThread.start()
         self.statusLabel.config(text="Working on crop...")
 
@@ -113,11 +133,13 @@ class Window():
         self.fileNameLabel.config(text="Selected GIF: \n" + self.fileName)
         self.myImage = PhotoImage(file=self.fileName)
         self.canvas.create_image(0, 0, image=self.myImage, anchor='nw')
-    
+
     def cropDone(self, x, y, w, h):
+        # TODO: clear old rectangle
         print("cropdone", x, y, w, h)
-        self.canvas.create_rectangle(x, y, x+w, y+h, outline='blue')
+        cropName = self.canvas.create_rectangle(x, y, x+w, y+h, outline='blue')
         self.statusLabel.config(text="Crop done!")
+        self.crops.append(Crop(x, y, w, h, name=cropName))
 
 
 if __name__ == "__main__":

@@ -90,12 +90,14 @@ class ProcessGIF:
         return self.frames[framenum]
 
     # remove duplicate frames & blank frames
-    def ValidFrames(self, x=0, y=0, w=-1, h=-1, removeInvalidFrames=True):
+    def ValidFrames(self, x=0, y=0, w=-1, h=-1, removeInvalidFrames=True, crop=True):
         prevCropFrame = []
         uniqueFrames = []
         for frame in self.frames:
             # crop
-            cropFrame = frame[y:y+h, x:x+w]
+            cropFrame = frame
+            if crop:
+                cropFrame = frame[y:y+h, x:x+w]
             if len(prevCropFrame) and removeInvalidFrames:
                 norm = cv2.norm(prevCropFrame, cropFrame)
                 # print(norm / (w*h))
@@ -107,8 +109,13 @@ class ProcessGIF:
         print("Total unique frames:", len(uniqueFrames))
         return uniqueFrames
 
-    def saveFrames(self, outputFileName, x, y, w, h, removeInvalidFrames=True):
-        uniqueFrames = self.ValidFrames(x, y, w, h, removeInvalidFrames)
+    def saveFrames(self, outputFileName, x=0, y=0, w=-1, h=-1, removeInvalidFrames=True, crop=True):
+        if w == -1:
+            w = self.frames[0].shape[0]
+        if h == -1:
+            h = self.frames[0].shape[1]
+        uniqueFrames = self.ValidFrames(
+            x, y, w, h, removeInvalidFrames, crop=crop)
         try:
             os.mkdir(outputFileName)
         except FileExistsError as e:
@@ -119,7 +126,7 @@ class ProcessGIF:
             for i in range(len(uniqueFrames)):
                 # output to directory called output filename
                 file_name = outputFileName + "/" + \
-                    outputFileName + "_" + str(i) + ".png"
+                    "frame_" + str(i) + ".png"
                 cv2.imwrite(file_name, uniqueFrames[i])
         except Exception as err:
             print("ERROR, write failed")
