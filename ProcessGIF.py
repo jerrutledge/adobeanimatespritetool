@@ -1,9 +1,18 @@
-import os, shutil
+import os
+import shutil
 from PIL import Image
 import cv2
 import numpy as np
 
+# in order to load in first GIF frame as rbg image and not grayscale
+from PIL import GifImagePlugin
+GifImagePlugin.LOADING_STRATEGY = GifImagePlugin.LoadingStrategy.RGB_ALWAYS
+
+
 class ProcessGIF:
+    def __init__(self) -> None:
+        self.frames = []
+
     def emptyAndDeleteFolder(foldername):
         print("Emptying and deleting", foldername, "...")
         for filename in os.listdir(foldername):
@@ -18,29 +27,41 @@ class ProcessGIF:
                 raise RuntimeError
         os.rmdir(foldername)
 
-    def autoCrop(frames, g_x=0, g_y=0, g_w=1, g_h=1):
+    def autoCrop(self, g_x=0, g_y=0, g_w=1, g_h=1, callback=None):
         # expand from given points every frame until a completely transparent border is reached
         x, y, w, h = g_x, g_y, g_w, g_h
-        
-        image_width, image_height = frames[0].shape[0], frames[0].shape[1]
-        dirs = [True, True, True, True] # keep expanding in up, down, left & right
+
+        image_height, image_width = self.frames[0].shape[0], self.frames[0].shape[1]
+        # keep expanding in up, down, left & right
+        dirs = [True, True, True, True]
         while True in dirs:
             dirs = [True, True, True, True]
-            dirs[0] = ProcessGIF.checkRowOrColumn(frames, x, x+w, y, y+1) and y > 1
-            y -= 1 if dirs[0] else 0
-            dirs[1] = ProcessGIF.checkRowOrColumn(frames, x, x+w, y+h-1, y+h) and h < image_height - y
+            dirs[0] = ProcessGIF.checkRowOrColumn(self, x, x+w, y, y+1)
+            dirs[0] = dirs[0] and y > 1
+            if dirs[0]:
+                y -= 1
+                h += 1
+            dirs[1] = ProcessGIF.checkRowOrColumn(self, x, x+w, y+h-1, y+h)
+            dirs[1] = dirs[1] and h + y < image_height
             h += 1 if dirs[1] else 0
-            dirs[2] = ProcessGIF.checkRowOrColumn(frames, x, x+1, y, y+h) and x > 1
-            x -= 1 if dirs[2] else 0
-            dirs[3] = ProcessGIF.checkRowOrColumn(frames, x+w-1, x+w, y, y+h) and w < image_width - x
+            dirs[2] = ProcessGIF.checkRowOrColumn(self, x, x+1, y, y+h)
+            dirs[2] = dirs[2] and x > 1
+            if dirs[2]:
+                x -= 1
+                w += 1
+            dirs[3] = ProcessGIF.checkRowOrColumn(self, x+w-1, x+w, y, y+h)
+            dirs[3] = dirs[3] and w + x < image_width
             w += 1 if dirs[3] else 0
 
+        if callback is not None:
+            callback.cropDone(x, y, w, h)
         return x, y, w, h
 
-    def checkRowOrColumn(frames, x1, x2, y1, y2):
+    def checkRowOrColumn(self, x1, x2, y1, y2):
         try:
-            for frame in frames:
-                if frame[x1:x2, y1:y2, 3].max() > 0:
+            for frame in self.frames:
+                # 3 represents the alpha channel
+                if frame[y1:y2, x1:x2, 3].max() > 0:
                     # we've reached an non-blank pixel
                     return True
         except IndexError:
@@ -49,30 +70,35 @@ class ProcessGIF:
         # everything is transparent
         return False
 
-
-    def processGif(input_filename, output_filename, g_x=0, g_y=0, g_w=1000, g_h=1000, replace = False, auto_crop=True):
+    def loadFrames(self, inputFileName, caller=None):
         # capture the animated gif using PIL
-        frames = []
-        with Image.open(input_filename) as imageObject:
-            for frame_num in range(0, imageObject.n_frames):
-                imageObject.seek(frame_num)
-                frames.append(cv2.cvtColor(np.array(imageObject), cv2.COLOR_BGR2RGBA))
-        # the first one seems to turn out bad??
-        frames.remove(frames[0])
+        self.frames = []
+        try:
+            with Image.open(inputFileName) as imageObject:
+                for frame_num in range(0, imageObject.n_frames):
+                    imageObject.seek(frame_num)
+                    array = np.array(imageObject)
+                    self.frames.append(cv2.cvtColor(array, cv2.COLOR_BGR2RGBA))
+        except Exception as e:
+            if caller is not None:
+                caller.imageLoadedHandler(False)
+                raise e
+        if caller is not None:
+            caller.imageLoadedHandler()
 
-        # determine the correct crop starting from a given crop
-        x, y, w, h = g_x, g_y, g_w, g_h
-        if auto_crop:
-            x, y, w, h = ProcessGIF.autoCrop(frames, x, y, w, h)
-            print("Autocrop", x,y,w,h)
+    def getFrame(self, framenum=0):
+        return self.frames[framenum]
 
-        #remove duplicate frames
+    # remove duplicate frames & blank frames
+    def ValidFrames(self, x=0, y=0, w=-1, h=-1, removeInvalidFrames=True, crop=True):
         prevCropFrame = []
         uniqueFrames = []
-        for frame in frames:
+        for frame in self.frames:
             # crop
-            cropFrame = frame[x:x+w, y:y+h]
-            if len(prevCropFrame):
+            cropFrame = frame
+            if crop:
+                cropFrame = frame[y:y+h, x:x+w]
+            if len(prevCropFrame) and removeInvalidFrames:
                 norm = cv2.norm(prevCropFrame, cropFrame)
                 # print(norm / (w*h))
                 if norm > 0.07 and cropFrame.max() > 0:
@@ -80,35 +106,63 @@ class ProcessGIF:
             else:
                 uniqueFrames.append(cropFrame)
             prevCropFrame = cropFrame
+        print("Total unique frames:", len(uniqueFrames))
+        return uniqueFrames
 
-        print(len(uniqueFrames), "unique frames total")
+    def saveFrames(self, outputFileName, x=0, y=0, w=-1, h=-1, removeInvalidFrames=True, crop=True):
+        if w == -1:
+            w = self.frames[0].shape[0]
+        if h == -1:
+            h = self.frames[0].shape[1]
+        uniqueFrames = self.ValidFrames(
+            x, y, w, h, removeInvalidFrames, crop=crop)
+        try:
+            os.mkdir(outputFileName)
+        except FileExistsError as e:
+            print(e)
+            print("Could not create directory", outputFileName)
+            return
+        try:
+            for i in range(len(uniqueFrames)):
+                # output to directory called output filename
+                file_name = outputFileName + "/" + \
+                    "frame_" + str(i) + ".png"
+                cv2.imwrite(file_name, uniqueFrames[i])
+        except Exception as err:
+            print("ERROR, write failed")
+            raise err
+        print("Saved image(s) to directory", outputFileName)
+
+    # meant for testing the whole pipeline, not meant to be called outside of this file
+    def processGif(self, output_filename, g_x=0, g_y=0, g_w=1000, g_h=1000, replace=False, auto_crop=True):
+        if not len(self.frames):
+            print("No frames to process! Load image first")
+            return
+
+        # determine the correct crop starting from a given crop
+        x, y, w, h = g_x, g_y, g_w, g_h
+        if auto_crop:
+            x, y, w, h = self.autoCrop(g_x, g_y, g_w, g_h)
+            print("Autocrop", x, y, w, h)
+
         if os.path.isdir(output_filename):
             print("Directory", output_filename, "already exists")
             if replace:
                 ProcessGIF.emptyAndDeleteFolder(output_filename)
             else:
                 return
-        
-        os.mkdir(output_filename)
-        print("Created directory", output_filename)
-        try:
-            for i in range(len(uniqueFrames)):
-                # output to directory called output filename
-                file_name = output_filename + "/" + output_filename + "_" + str(i) + ".png"
-                cv2.imwrite(file_name, uniqueFrames[i])
-            return
-        except Exception as err:
-            print("ERROR, write failed")
-            print(err)
-        print("Trying to clean up directory", output_filename, "...")
-        os.rmdir(output_filename)
-        print("Directory", output_filename, "successfully removed")
+
+        self.saveFrames(output_filename, x, y, w, h, removeInvalidFrames=True)
+
 
 if __name__ == "__main__":
 
     input_filename = "Character-walk-cycle2.gif"
-    output_filename = "Character"
+    output_filename = "Coin"
     # crop
-    x, y, w, h = 180, 180, 60, 60
+    x, y, w, h = 750, 240, 2, 2
 
-    ProcessGIF.processGif(input_filename, output_filename, x, y, w, h, replace=True)
+    p = ProcessGIF()
+    p.loadFrames(inputFileName=input_filename)
+    p.processGif(output_filename=output_filename, g_x=x, g_y=y,
+                 g_w=w, g_h=h, replace=True, auto_crop=True)
